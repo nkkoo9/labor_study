@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko" data-theme="dark">
 <head>
@@ -18,7 +17,7 @@
     --border: #2e3250;
     --highlight: #f4c842;
     --slide-shadow: 0 24px 80px rgba(0,0,0,0.5);
-    --transition-speed: 0.55s;
+    --transition-speed: 0.3s;
   }
   [data-theme="light"] {
     --bg: #f0f2f8;
@@ -184,7 +183,6 @@
     width: 100vw;
     height: 100vh;
     position: relative;
-    perspective: 1200px;
   }
 
   /* ── SLIDE ── */
@@ -198,42 +196,41 @@
     padding: 60px 80px 100px;
     opacity: 0;
     pointer-events: none;
-    transform-style: preserve-3d;
   }
   .slide.active {
     opacity: 1;
     pointer-events: auto;
   }
 
-  /* Cube transition */
+  /* Fade-slide transition */
   .slide.exit-left {
-    animation: cubeExitLeft var(--transition-speed) ease-in forwards;
+    animation: fadeSlideExitLeft var(--transition-speed) ease forwards;
   }
   .slide.exit-right {
-    animation: cubeExitRight var(--transition-speed) ease-in forwards;
+    animation: fadeSlideExitRight var(--transition-speed) ease forwards;
   }
   .slide.enter-right {
-    animation: cubeEnterRight var(--transition-speed) ease-out forwards;
+    animation: fadeSlideEnterRight var(--transition-speed) ease forwards;
   }
   .slide.enter-left {
-    animation: cubeEnterLeft var(--transition-speed) ease-out forwards;
+    animation: fadeSlideEnterLeft var(--transition-speed) ease forwards;
   }
 
-  @keyframes cubeExitLeft {
-    from { transform: rotateY(0deg) translateZ(0); opacity: 1; }
-    to   { transform: rotateY(-90deg) translateZ(0); opacity: 0; }
+  @keyframes fadeSlideExitLeft {
+    from { transform: translateX(0); opacity: 1; }
+    to   { transform: translateX(-40px); opacity: 0; }
   }
-  @keyframes cubeExitRight {
-    from { transform: rotateY(0deg) translateZ(0); opacity: 1; }
-    to   { transform: rotateY(90deg) translateZ(0); opacity: 0; }
+  @keyframes fadeSlideExitRight {
+    from { transform: translateX(0); opacity: 1; }
+    to   { transform: translateX(40px); opacity: 0; }
   }
-  @keyframes cubeEnterRight {
-    from { transform: rotateY(90deg) translateZ(0); opacity: 0; }
-    to   { transform: rotateY(0deg) translateZ(0); opacity: 1; }
+  @keyframes fadeSlideEnterRight {
+    from { transform: translateX(40px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
   }
-  @keyframes cubeEnterLeft {
-    from { transform: rotateY(-90deg) translateZ(0); opacity: 0; }
-    to   { transform: rotateY(0deg) translateZ(0); opacity: 1; }
+  @keyframes fadeSlideEnterLeft {
+    from { transform: translateX(-40px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
   }
 
   /* ── SLIDE CARD ── */
