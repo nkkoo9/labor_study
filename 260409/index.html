@@ -1,1 +1,1723 @@
 
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bartel et al. (2018) — Paid Family Leave</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --accent: #4f8ef7;
+    --accent2: #7dd3a8;
+    --text: #e8eaf0;
+    --text-muted: #8b90a8;
+    --border: #2e3250;
+    --highlight: #f4c842;
+    --slide-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    --transition-speed: 0.55s;
+  }
+  [data-theme="light"] {
+    --bg: #f0f2f8;
+    --surface: #ffffff;
+    --surface2: #eef0f8;
+    --accent: #2563eb;
+    --accent2: #16a34a;
+    --text: #1a1d2e;
+    --text-muted: #5a6080;
+    --border: #d0d4e8;
+    --highlight: #d97706;
+    --slide-shadow: 0 24px 80px rgba(0,0,0,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    transition: background 0.4s, color 0.4s;
+  }
+
+  /* ── PROGRESS BAR ── */
+  #progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.4s ease;
+    z-index: 100;
+    border-radius: 0 2px 2px 0;
+  }
+
+  /* ── CONTROLS ── */
+  #controls {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 10px 20px;
+    z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    backdrop-filter: blur(12px);
+  }
+  .ctrl-btn {
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: background 0.2s, color 0.2s;
+    display: flex; align-items: center;
+  }
+  .ctrl-btn:hover { background: var(--surface2); color: var(--accent); }
+  .ctrl-btn:disabled { opacity: 0.3; cursor: default; }
+  #slide-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-muted);
+    min-width: 56px;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+  .ctrl-divider {
+    width: 1px; height: 20px;
+    background: var(--border);
+  }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    position: fixed;
+    top: 8px; right: 16px;
+    display: flex; gap: 8px;
+    z-index: 100;
+  }
+  .top-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .top-btn:hover { background: var(--surface2); border-color: var(--accent); color: var(--accent); }
+
+  /* ── OVERVIEW MODAL ── */
+  #overview {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 200;
+    padding: 60px 40px 40px;
+    overflow-y: auto;
+    backdrop-filter: blur(8px);
+  }
+  #overview.active { display: block; }
+  #overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .overview-thumb {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    aspect-ratio: 16/10;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .overview-thumb:hover, .overview-thumb.active-thumb {
+    border-color: var(--accent);
+    transform: scale(1.03);
+    box-shadow: 0 0 0 3px rgba(79,142,247,0.2);
+  }
+  .thumb-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .thumb-title {
+    font-size: 11px;
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  #overview-close {
+    position: fixed;
+    top: 16px; right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 20px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 201;
+  }
+
+  /* ── SLIDES WRAPPER ── */
+  #slides-wrapper {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    perspective: 1200px;
+  }
+
+  /* ── SLIDE ── */
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 80px 100px;
+    opacity: 0;
+    pointer-events: none;
+    transform-style: preserve-3d;
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Cube transition */
+  .slide.exit-left {
+    animation: cubeExitLeft var(--transition-speed) ease-in forwards;
+  }
+  .slide.exit-right {
+    animation: cubeExitRight var(--transition-speed) ease-in forwards;
+  }
+  .slide.enter-right {
+    animation: cubeEnterRight var(--transition-speed) ease-out forwards;
+  }
+  .slide.enter-left {
+    animation: cubeEnterLeft var(--transition-speed) ease-out forwards;
+  }
+
+  @keyframes cubeExitLeft {
+    from { transform: rotateY(0deg) translateZ(0); opacity: 1; }
+    to   { transform: rotateY(-90deg) translateZ(0); opacity: 0; }
+  }
+  @keyframes cubeExitRight {
+    from { transform: rotateY(0deg) translateZ(0); opacity: 1; }
+    to   { transform: rotateY(90deg) translateZ(0); opacity: 0; }
+  }
+  @keyframes cubeEnterRight {
+    from { transform: rotateY(90deg) translateZ(0); opacity: 0; }
+    to   { transform: rotateY(0deg) translateZ(0); opacity: 1; }
+  }
+  @keyframes cubeEnterLeft {
+    from { transform: rotateY(-90deg) translateZ(0); opacity: 0; }
+    to   { transform: rotateY(0deg) translateZ(0); opacity: 1; }
+  }
+
+  /* ── SLIDE CARD ── */
+  .slide-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 960px;
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+    box-shadow: var(--slide-shadow);
+    transition: background 0.4s, border-color 0.4s;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* ── SLIDE HEADER ── */
+  .slide-header {
+    background: linear-gradient(135deg, #1e3a6e 0%, #163060 100%);
+    padding: 20px 36px;
+    border-radius: 17px 17px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  [data-theme="light"] .slide-header {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  }
+  .slide-header h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: #fff;
+    font-weight: 400;
+    line-height: 1.3;
+  }
+  .section-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.85);
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── SLIDE BODY ── */
+  .slide-body {
+    padding: 28px 36px 32px;
+  }
+
+  /* ── TYPOGRAPHY ── */
+  .slide-body ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .slide-body li {
+    display: flex;
+    gap: 12px;
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text);
+  }
+  .slide-body li::before {
+    content: '●';
+    color: var(--accent);
+    font-size: 10px;
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+  .slide-body ul ul {
+    margin-top: 6px;
+    margin-left: 4px;
+    gap: 6px;
+  }
+  .slide-body ul ul li {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-body ul ul li::before {
+    content: '◦';
+    color: var(--accent2);
+    font-size: 12px;
+    margin-top: 4px;
+  }
+  .slide-body ul ul ul li::before {
+    content: '–';
+    color: var(--text-muted);
+  }
+
+  strong {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  em {
+    color: var(--accent2);
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  /* ── TITLE SLIDE ── */
+  .title-slide {
+    text-align: center;
+    padding: 48px 40px;
+  }
+  .title-slide .paper-tag {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 5px 16px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+    letter-spacing: 0.08em;
+  }
+  .title-slide h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 30px;
+    font-weight: 400;
+    line-height: 1.3;
+    margin-bottom: 24px;
+    color: var(--text);
+  }
+  .title-slide .authors {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .title-slide .journal {
+    font-size: 14px;
+    color: var(--accent2);
+    font-style: italic;
+  }
+  .title-divider {
+    width: 60px; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    margin: 20px auto;
+  }
+
+  /* ── OUTLINE SLIDE ── */
+  .outline-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .outline-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+  .outline-item:hover {
+    background: var(--surface2);
+    border-color: var(--border);
+  }
+  .outline-item.active-section {
+    background: rgba(79,142,247,0.08);
+    border-color: var(--accent);
+  }
+  .outline-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    width: 20px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .outline-text {
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  /* ── KEY RESULTS BOX ── */
+  .result-box {
+    background: var(--surface2);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    margin: 8px 0;
+    font-size: 14.5px;
+    line-height: 1.6;
+  }
+  .result-box.green { border-left-color: var(--accent2); }
+  .result-box.yellow { border-left-color: var(--highlight); }
+
+  /* ── STAT HIGHLIGHT ── */
+  .stat {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .stats-row {
+    display: flex;
+    gap: 24px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+  }
+
+  /* ── IMAGE SLIDE ── */
+  .img-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 0;
+  }
+  .img-container img {
+    max-width: 100%;
+    max-height: 420px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    object-fit: contain;
+  }
+  .img-caption {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 10px;
+    font-style: italic;
+  }
+
+  /* ── FORMULA BOX ── */
+  .formula {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent2);
+    line-height: 1.8;
+    overflow-x: auto;
+  }
+
+  /* ── TABLE COMPARISON ── */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13.5px;
+  }
+  .compare-table th {
+    background: var(--surface2);
+    color: var(--accent);
+    font-weight: 600;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+  .compare-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table tr:hover td { background: var(--surface2); }
+
+  /* ── TWO-COL LAYOUT ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 8px;
+  }
+  .col-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .col-box h4 {
+    font-size: 13px;
+    color: var(--accent);
+    margin-bottom: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── SECTION DIVIDER SLIDE ── */
+  .section-divider-slide {
+    text-align: center;
+    padding: 60px 40px;
+  }
+  .section-divider-slide .sec-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 60px;
+    color: var(--border);
+    line-height: 1;
+    margin-bottom: 16px;
+  }
+  .section-divider-slide h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 36px;
+    color: var(--text);
+    font-weight: 400;
+  }
+  .section-divider-slide .sec-line {
+    width: 60px; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    margin: 20px auto;
+  }
+
+  /* ── FOOTER ── */
+  .slide-footer {
+    padding: 10px 36px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .slide { padding: 40px 16px 90px; }
+    .slide-header h2 { font-size: 17px; }
+    .slide-body { padding: 18px 18px 22px; }
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<div id="topbar">
+  <button class="top-btn" id="theme-toggle">🌙 다크</button>
+  <button class="top-btn" id="overview-btn">⊞ 전체보기</button>
+  <button class="top-btn" id="fullscreen-btn">⛶ 전체화면</button>
+</div>
+
+<!-- OVERVIEW MODAL -->
+<div id="overview">
+  <button id="overview-close">✕</button>
+  <div id="overview-grid"></div>
+</div>
+
+<!-- SLIDES -->
+<div id="slides-wrapper">
+
+  <!-- SLIDE 1: TITLE -->
+  <div class="slide active" data-index="0" data-section="Title">
+    <div class="slide-card">
+      <div class="title-slide">
+        <div class="paper-tag">JPAM · 2018</div>
+        <h1>Paid Family Leave, Fathers' Leave-Taking,<br>and Leave-Sharing in Dual-Earner Households</h1>
+        <div class="title-divider"></div>
+        <p class="authors">Bartel, Rossin-Slater, Ruhm, Stearns &amp; Waldfogel</p>
+        <p class="journal">Journal of Policy Analysis and Management, 2018</p>
+      </div>
+      <div class="slide-footer">
+        <span>Labor Economics Study Group</span>
+        <span>1 / 40</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: OUTLINE -->
+  <div class="slide" data-index="1" data-section="Outline">
+    <div class="slide-card">
+      <div class="slide-header"><h2>목차</h2></div>
+      <div class="slide-body">
+        <ol class="outline-list">
+          <li class="outline-item" data-goto="2"><span class="outline-num">1</span><span class="outline-text">Introduction</span></li>
+          <li class="outline-item" data-goto="7"><span class="outline-num">2</span><span class="outline-text">Related Literature &amp; Hypotheses</span></li>
+          <li class="outline-item" data-goto="12"><span class="outline-num">3</span><span class="outline-text">Data</span></li>
+          <li class="outline-item" data-goto="17"><span class="outline-num">4</span><span class="outline-text">Empirical Strategy</span></li>
+          <li class="outline-item" data-goto="22"><span class="outline-num">5</span><span class="outline-text">Estimated Effects on Leave-Taking</span></li>
+          <li class="outline-item" data-goto="32"><span class="outline-num">6</span><span class="outline-text">Robustness</span></li>
+          <li class="outline-item" data-goto="37"><span class="outline-num">7</span><span class="outline-text">Conclusion</span></li>
+        </ol>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>2 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: SECTION DIVIDER — Introduction -->
+  <div class="slide" data-index="2" data-section="Introduction">
+    <div class="slide-card">
+      <div class="section-divider-slide">
+        <div class="sec-num">01</div>
+        <h2>Introduction</h2>
+        <div class="sec-line"></div>
+        <p style="color:var(--text-muted);font-size:15px;">연구 배경 · 동기 · 목적 및 주요 결과 미리보기</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>3 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: 연구 배경 -->
+  <div class="slide" data-index="3" data-section="Introduction">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">1 / Introduction</span><h2>연구 배경: 미국의 유급 가족 휴가(PFL) 제도</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li>미국은 국가 수준의 <strong>유급 가족 휴가(Paid Family Leave, PFL)</strong> 제도가 없는 소수 국가 중 하나
+            <ul>
+              <li>연방법(FMLA): 일부 근로자에게 최대 12주 <strong>무급</strong> 휴가 제공 (민간 부문 근로자의 60% 미만만 수혜)</li>
+            </ul>
+          </li>
+          <li>주(州) 수준의 PFL 프로그램 도입
+            <ul>
+              <li><strong>캘리포니아(CA-PFL)</strong>: 2004년 도입 — 미국 최초의 성 중립적(gender-neutral) 유급 육아휴직 제도</li>
+              <li>뉴저지(2008), 로드아일랜드(2014), 뉴욕·워싱턴DC(2018/2020 예정)</li>
+            </ul>
+          </li>
+          <li><strong>CA-PFL 주요 내용</strong>
+            <ul>
+              <li>대상: 민간 부문 근로자 전체</li>
+              <li>기간: 최대 <strong>6주</strong>의 유급 휴가</li>
+              <li>임금 대체율: 임금의 <strong>55%</strong> (주당 최대 $1,173)</li>
+              <li>고용 보호: <strong>직접적 고용 보호 없음</strong> (FMLA 동시 적용 시 가능)</li>
+              <li>부모 모두 동일 조건으로 수혜 가능 (동시 또는 순차 사용)</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>4 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: 연구 동기 -->
+  <div class="slide" data-index="4" data-section="Introduction">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">1 / Introduction</span><h2>연구 동기: 왜 아버지의 휴직을 연구하는가?</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li>미국 아버지의 육아휴직 이용률은 매우 낮음
+            <ul>
+              <li>2013년 기준: 1세 미만 자녀를 둔 취업 아버지 중 <strong>약 2%</strong>만 휴직 중 (어머니는 14%)</li>
+              <li>민간 기업의 <strong>14%</strong>만이 남성 직원 대다수에게 유급 육아휴직을 제공 (2012년 기준)</li>
+              <li>이 비율은 지난 10년간 거의 변화 없음</li>
+            </ul>
+          </li>
+          <li>아버지에 대한 PFL 영향 연구가 중요한 이유
+            <ul>
+              <li>미국 아버지들은 어머니만큼 또는 그 이상의 <strong>일-가정 갈등</strong>을 경험</li>
+              <li>아버지는 어머니와 다른 방식으로 PFL에 반응할 가능성
+                <ul>
+                  <li>가계 주 소득자 역할 → 부분 임금 대체·고용 보호 부재의 재정적 충격이 더 클 수 있음</li>
+                  <li>생물학적 휴직 필요성이 어머니에 비해 낮음</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li>CA-PFL에서 아버지의 청구 비율 증가
+            <ul>
+              <li>2005년: 전체 청구의 <strong>19.6%</strong></li>
+              <li>2013년: 전체 청구의 <strong>약 30%</strong></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>5 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: 연구 목적 및 기여 -->
+  <div class="slide" data-index="5" data-section="Introduction">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">1 / Introduction</span><h2>연구 목적 및 기여</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li><strong>데이터:</strong> 2000년 인구총조사 + 2000–2013년 미국 지역사회조사(ACS)</li>
+          <li><strong>식별 전략:</strong> 이중차분(DD) 및 삼중차분(DDD) 설계</li>
+          <li><strong>주요 분석 내용</strong>
+            <ul>
+              <li>CA-PFL이 아버지의 휴직에 미친 인과적 효과 추정 (비교 대상: 동일 데이터 내 어머니)</li>
+              <li>맞벌이 가구에서의 <strong>공동 휴직</strong> vs. <strong>아버지 단독 휴직</strong> vs. <strong>어머니 단독 휴직</strong> 구분 분석</li>
+              <li>출생 순서, 자녀 성별, 가구 소득별 이질적 효과 검토</li>
+            </ul>
+          </li>
+          <li><strong>선행연구(Baum &amp; Ruhm, 2016) 대비 기여</strong>
+            <ul>
+              <li>① 더 크고 대표성 있는 데이터로 주요 결과 확인</li>
+              <li>② 새로운 형태의 이질성 분석</li>
+              <li>③ 가구 내 동시적·분리적 휴직 사용에 관한 새로운 분석</li>
+              <li>④ 소수 처치 집단 문제를 고려한 강건한 추론 방법 적용 (Ferman &amp; Pinto, 2016)</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>6 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: 주요 결과 미리보기 -->
+  <div class="slide" data-index="6" data-section="Introduction">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">1 / Introduction</span><h2>주요 결과 미리보기</h2></div>
+      <div class="slide-body">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat">+0.9%p</div>
+            <div class="stat-label">아버지 휴직률 상승</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat" style="color:var(--accent2)">+46%</div>
+            <div class="stat-label">사전 평균 대비 상대적 증가</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat" style="color:var(--highlight)">+2.3%p</div>
+            <div class="stat-label">어머니 휴직률 상승</div>
+          </div>
+        </div>
+        <ul>
+          <li>맞벌이 가구에서의 휴직 형태 변화
+            <ul>
+              <li>약 절반: 어머니와 <strong>동시에</strong> 휴직 (공동 휴직 증가)</li>
+              <li>나머지 절반: 어머니가 복직한 후 <strong>아버지 단독</strong> 휴직 증가</li>
+            </ul>
+          </li>
+          <li><strong>출생 순서</strong>에 따른 이질적 효과
+            <ul>
+              <li>첫째 자녀의 경우: 약 <strong>2%p 증가</strong> (95% 상승)</li>
+              <li>둘째 이상의 경우: 약 <strong>0.35%p 증가</strong> (18% 상승)</li>
+            </ul>
+          </li>
+          <li>소득 및 자녀 성별에 따른 이질성: 통계적으로 유의미한 차이 발견되지 않음
+            <ul>
+              <li>→ 정책 효과의 <strong>보편성 및 일반화 가능성</strong> 시사</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>7 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: SECTION DIVIDER — Related Literature -->
+  <div class="slide" data-index="7" data-section="Related Literature">
+    <div class="slide-card">
+      <div class="section-divider-slide">
+        <div class="sec-num">02</div>
+        <h2>Related Literature &amp; Hypotheses</h2>
+        <div class="sec-line"></div>
+        <p style="color:var(--text-muted);font-size:15px;">선행연구 검토 및 가설 도출</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>8 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: 선행연구 -->
+  <div class="slide" data-index="8" data-section="Related Literature">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">2 / Literature</span><h2>선행연구: 유럽·캐나다 육아휴직 개혁</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li>아버지의 휴직에 대한 PFL 효과 연구는 상대적으로 부족
+            <ul>
+              <li>어머니 대상 연구는 다수 존재: 휴직 이용률에는 큰 효과, 노동시장 결과에는 혼재된 결과</li>
+            </ul>
+          </li>
+          <li>유럽·캐나다의 <strong>"아빠 할당제(daddy quota)"</strong> 연구
+            <ul>
+              <li>스웨덴, 노르웨이, 독일, 캐나다 등에서 아버지 전용 휴직 제도 도입 효과 분석</li>
+            </ul>
+          </li>
+          <li><strong>CA-PFL과 유럽 제도의 차이점</strong> — 유럽 연구의 미국 적용 가능성 제한
+            <ul>
+              <li>CA-PFL은 유럽 제도 대비 <strong>임금 대체율이 낮고 기간도 짧음</strong></li>
+              <li>CA-PFL은 <strong>고용 보호 없음</strong> (로드아일랜드·뉴욕은 고용 보호 있음)</li>
+              <li>유럽: 보육 지원·전국 건강보험 등 보완적 제도 존재 → 미국과 정책 환경 상이</li>
+              <li>CA-PFL은 <strong>성 중립적</strong>: 부모 각자 동일 조건으로 동시 또는 순차 사용 가능</li>
+              <li>유럽 다수 국가: 휴직을 가구 단위로 배분, 부모 간 분담 방식 결정 필요</li>
+            </ul>
+          </li>
+          <li>선행연구의 공통된 시사점: 성 중립적 PFL 도입 시 <em>어머니보다 아버지에게 더 큰 상대적 효과</em> 기대</li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>9 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: 가설 1 -->
+  <div class="slide" data-index="9" data-section="Related Literature">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">2 / Literature</span><h2>가설 1: 아버지의 휴직 이용률</h2></div>
+      <div class="slide-body">
+        <div class="result-box">CA-PFL은 아버지의 휴직을 증가시킬 것 — 단, 효과 크기는 어머니보다 <strong>작을 것</strong>으로 예상</div>
+        <ul style="margin-top:14px;">
+          <li>아버지의 효과가 어머니보다 작을 것으로 예상되는 이유
+            <ul>
+              <li>신생아는 어머니에게 더 큰 <strong>생물학적 필요</strong> 유발 (출산 회복, 모유 수유 등)</li>
+              <li>아버지는 평균적으로 <strong>더 높은 소득자</strong> → 부분 임금 대체의 재정적 부담이 더 큼</li>
+            </ul>
+          </li>
+          <li>반면, 아버지의 <em>상대적(relative) 증가율</em>은 어머니보다 클 수 있음
+            <ul>
+              <li>기저 휴직률이 매우 낮음 (2013년 기준 약 2%)</li>
+              <li>민간 고용주의 유급 육아휴직 제공률도 매우 낮아 CA-PFL의 <strong>한계 효과</strong>가 더 클 가능성</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>10 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: 가설 2 -->
+  <div class="slide" data-index="10" data-section="Related Literature">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">2 / Literature</span><h2>가설 2: 맞벌이 가구의 휴직 형태</h2></div>
+      <div class="slide-body">
+        <p style="font-size:14.5px;color:var(--text-muted);margin-bottom:14px;">CA-PFL이 맞벌이 가구 내 어떤 형태의 휴직을 증가시킬지는 <strong>불분명</strong></p>
+        <div class="two-col">
+          <div class="col-box">
+            <h4>공동 휴직(joint leave) 증가 가능성</h4>
+            <ul>
+              <li>CA-PFL이 아버지로 하여금 출산 직후 추가적인 휴직을 장려할 경우</li>
+              <li>아버지가 원래 출산 직후 약 1주 정도 휴직 → 이 시기에 어머니도 휴직 중</li>
+            </ul>
+          </div>
+          <div class="col-box">
+            <h4>아버지 단독 휴직(father-only leave) 증가 가능성</h4>
+            <ul>
+              <li>CA-PFL은 자녀 생후 12개월 이내 언제든지, <strong>분할하여</strong> 사용 가능</li>
+              <li>맞벌이 가구가 영아와 함께하는 <strong>총 재가 시간을 극대화</strong>하려 할 경우</li>
+              <li>어머니 복직 후 아버지가 단독으로 휴직하는 전략 선택 가능</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>11 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: 가설 3 -->
+  <div class="slide" data-index="11" data-section="Related Literature">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">2 / Literature</span><h2>가설 3: 이질적 효과</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li><strong>출생 순서:</strong> 첫째 자녀일수록 효과가 클 것
+            <ul>
+              <li>첫 자녀 출산 시 "적응 비용(start-up cost)"이 높음 — 신생아 돌봄 경험 부족, 보육 시설 미확보</li>
+              <li>둘째 이상: 이미 경험 있고 기존 보육 배치 활용 가능 → 한계 필요성 낮음</li>
+              <li>선행연구에서도 출생 순서에 따른 휴직 패턴 이질성 확인 (Han et al., 2008)</li>
+            </ul>
+          </li>
+          <li><strong>자녀 성별:</strong> 아들일 때 효과가 클 것 (다만 잠정적)
+            <ul>
+              <li>아버지의 아들 선호(son preference) 관련 선행연구와 일치 (Tanaka &amp; Waldfogel, 2007)</li>
+              <li>아버지가 아들과 함께하는 시간에서 더 높은 효용을 얻거나, 남아 돌봄을 더 생산적으로 인식할 가능성</li>
+            </ul>
+          </li>
+          <li><strong>가구 소득:</strong> 방향이 불분명
+            <ul>
+              <li>저소득 가구: 고용 보호 부재·낮은 임금 대체율의 재정적 부담이 더 큼 → 효과 작을 가능성</li>
+              <li>고소득 가구: 민간 유급휴직 이미 보유, 기회비용 높음 → CA-PFL 수요 낮을 가능성</li>
+              <li>어머니 연구(Rossin-Slater et al., 2013): 가장 취약한 어머니에게 효과 집중</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>12 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: SECTION DIVIDER — Data -->
+  <div class="slide" data-index="12" data-section="Data">
+    <div class="slide-card">
+      <div class="section-divider-slide">
+        <div class="sec-num">03</div>
+        <h2>Data</h2>
+        <div class="sec-line"></div>
+        <p style="color:var(--text-muted);font-size:15px;">데이터 출처 · 종속변수 · 표본 구성 및 한계</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>13 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 14: 데이터 -->
+  <div class="slide" data-index="13" data-section="Data">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">3 / Data</span><h2>데이터: 미국 지역사회조사(ACS)</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li><strong>데이터 출처:</strong> 2000년 인구총조사 + 2000–2013년 미국 지역사회조사(ACS)
+            <ul>
+              <li>IPUMS 데이터베이스 (Ruggles et al., 2010)</li>
+              <li>ACS: 매년 전체 인구의 약 1% 표본 (2000년은 0.13%)</li>
+              <li>2000년: ACS와 인구총조사 1% 표본 결합하여 표본 수 확대</li>
+            </ul>
+          </li>
+          <li><strong>주요 종속변수:</strong> 조사 기준 주(survey reference week)에 <em>휴직 중인지 여부</em>
+            <ul>
+              <li>ACS 질문: "지난 주에 직장·사업체를 <strong>일시적으로 결근</strong>했습니까?"</li>
+              <li>육아휴직·병가·휴가 등 종류 불문, 모든 일시적 결근 포함</li>
+              <li>부재 기간(일수) 및 유급·무급 여부 구분 불가</li>
+            </ul>
+          </li>
+          <li><strong>분석 대상 표본:</strong> 16–54세 취업 아버지
+            <ul>
+              <li>취업자 조건 부과: 비취업자는 CA-PFL 수혜 가능성 낮고 ACS에서 휴직자로 포착 불가</li>
+              <li>가구 내 동거 자녀와만 연결 가능 (비동거 아버지 제외)</li>
+              <li>캘리포니아 내 취업 아버지 전원을 CA-PFL 수혜 가능자로 간주</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>14 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 15: 데이터 한계 -->
+  <div class="slide" data-index="14" data-section="Data">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">3 / Data</span><h2>데이터의 한계</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li><strong>한계 1:</strong> 자녀 생년월일 미기재 — 연령(만 나이)만 확인 가능
+            <ul>
+              <li>조사 기준 주 1주만 관측 → 대부분의 휴직 포착 불가</li>
+              <li>단, 출생·휴직 기간이 연중 균등 분포한다는 가정 하에 <strong>휴직률 변화</strong>는 정확히 포착 가능</li>
+              <li>휴직률 수준(level)은 과소추정될 수 있음</li>
+            </ul>
+          </li>
+          <li><strong>한계 2:</strong> 동거 자녀만 연결 가능
+            <ul>
+              <li>비동거 아버지 제외 → 평균적 아버지 대비 추정치가 과대평가될 수 있음</li>
+              <li>전체 영아의 74.5%가 친부와 동거</li>
+            </ul>
+          </li>
+          <li><strong>한계 3:</strong> 공공 부문 일부 근로자는 CA-PFL 비해당
+            <ul>
+              <li>캘리포니아 취업 아버지 전원을 수혜 가능자로 간주 → 효과 <strong>과소추정</strong> 가능성</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>15 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 16: Figure 1 이미지 -->
+  <div class="slide" data-index="15" data-section="Data">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">3 / Data</span><h2>Figure 1: 캘리포니아 vs. 타 주 아버지 휴직률 추이</h2></div>
+      <div class="slide-body">
+        <div class="img-container">
+          <img src="images/Figure1.png" alt="Figure 1: Fathers Leave-Taking in CA vs Other States">
+        </div>
+        <p class="img-caption">Figure 1. Fathers' Leave-Taking in CA Compared to Other States, Youngest Child Less Than Age 1.</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>16 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 17: Figure 1 해석 -->
+  <div class="slide" data-index="16" data-section="Data">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">3 / Data</span><h2>Figure 1: 캘리포니아 vs. 타 주 아버지 휴직률 추이 — 해석</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li>CA-PFL 시행 이후 캘리포니아 영아 아버지의 휴직률이 타 주 대비 <strong>대부분의 연도에서 큰 폭으로 상승</strong></li>
+          <li>2000년과 2001년 사이의 급등은 2000년 데이터가 인구총조사와 ACS를 결합한 데 따른 것으로, <em>2000년을 제외해도 결과는 강건함</em></li>
+          <li>2008년부터 전국적으로 아버지 휴직률이 하락하는 추세는 <strong>경기침체의 영향</strong>으로, 휴직률과 실업률이 음의 상관관계를 보이기 때문</li>
+          <li>이러한 패턴을 회귀분석 모형으로 추가 검토</li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>17 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 18: SECTION DIVIDER — Empirical Strategy -->
+  <div class="slide" data-index="17" data-section="Empirical Strategy">
+    <div class="slide-card">
+      <div class="section-divider-slide">
+        <div class="sec-num">04</div>
+        <h2>Empirical Strategy</h2>
+        <div class="sec-line"></div>
+        <p style="color:var(--text-muted);font-size:15px;">이중차분(DD) · 삼중차분(DDD) · 추론 방법 · 식별 가정 점검</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>18 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 19: DD -->
+  <div class="slide" data-index="18" data-section="Empirical Strategy">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">4 / Empirical Strategy</span><h2>식별 전략: 이중차분(DD)</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li><strong>기본 DD 설계:</strong> 캘리포니아 영아 아버지의 휴직률 변화를 두 가지 비교 집단과 대조
+            <ul>
+              <li>비교 집단 1: 타 주의 영아 아버지</li>
+              <li>비교 집단 2: 캘리포니아 내 1–3세(또는 2–4세) 자녀 아버지</li>
+            </ul>
+          </li>
+        </ul>
+        <div class="formula">
+          Y<sub>ist</sub> = β₀ + β₁Treat<sub>ist</sub> + <strong>β₂Treat<sub>ist</sub> × Post<sub>t</sub></strong> + γ′X<sub>ist</sub> + ρ′C<sub>st</sub> + δ<sub>s</sub> + φ<sub>t</sub> + ε<sub>ist</sub>
+        </div>
+        <ul>
+          <li>Y<sub>ist</sub>: 조사 기준 주에 휴직 중이면 1, 아니면 0</li>
+          <li>Treat<sub>ist</sub>: 캘리포니아 영아 아버지이면 1</li>
+          <li>Post<sub>t</sub>: 2005년 이후이면 1 (CA-PFL 첫 완전 시행 연도)</li>
+          <li>X<sub>ist</sub>: 개인 수준 통제변수 (연령, 인종, 교육, 혼인 여부, 시민권, 자녀 수 등)</li>
+          <li>C<sub>st</sub>: 주-연도 수준 통제변수 (실업률, 최저임금, 1인당 소득 등)</li>
+          <li>δ<sub>s</sub>, φ<sub>t</sub>: 주 고정효과, 연도 고정효과</li>
+          <li><strong>관심 계수: β₂</strong> — CA-PFL의 아버지 휴직에 대한 DD 추정치</li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>19 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 20: DDD -->
+  <div class="slide" data-index="19" data-section="Empirical Strategy">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">4 / Empirical Strategy</span><h2>식별 전략: 삼중차분(DDD)</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li><strong>DDD 설계:</strong> 두 비교 집단을 결합하여 주-연도별 차별적 추세를 유연하게 통제</li>
+        </ul>
+        <div class="formula">
+          Y<sub>ist</sub> = β₀ + β₁Under1<sub>ist</sub> + β₂CA<sub>s</sub>×Post<sub>t</sub> + β₃CA<sub>s</sub>×Under1<sub>ist</sub><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ β₄Post<sub>t</sub>×Under1<sub>ist</sub> + <strong>β₅CA<sub>s</sub>×Post<sub>t</sub>×Under1<sub>ist</sub></strong> + γ′X<sub>ist</sub> + δ<sub>s</sub> + φ<sub>t</sub> + θ<sub>st</sub> + ε<sub>ist</sub>
+        </div>
+        <ul>
+          <li>Under1<sub>ist</sub>: 막내 자녀가 1세 미만이면 1</li>
+          <li>CA<sub>s</sub>: 캘리포니아 거주이면 1</li>
+          <li>θ<sub>st</sub>: <strong>주-연도 고정효과</strong> (주별 경기변동 등 차별적 추세 흡수)</li>
+          <li><strong>관심 계수: β₅</strong> — CA-PFL의 아버지 휴직에 대한 DDD 추정치</li>
+        </ul>
+        <div class="result-box green" style="margin-top:12px;">
+          <strong>선호 사양:</strong> 주-연도 고정효과를 포함한 DDD (column 4 of Table 2) — 주별 차별적 휴직 추세 및 대침체(Great Recession)의 이질적 영향 통제 가능
+        </div>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>20 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 21: 추론 방법 -->
+  <div class="slide" data-index="20" data-section="Empirical Strategy">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">4 / Empirical Strategy</span><h2>추론 방법: 소수 처치 집단 문제</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li><strong>문제:</strong> 처치 집단이 캘리포니아 1개 주에 불과
+            <ul>
+              <li>주 수준 군집 표준오차(cluster-robust SE)는 처치 집단 수가 적을 때 신뢰하기 어려움</li>
+              <li>주별 관측 수가 상이하여 이분산성(heteroskedasticity) 발생 가능</li>
+            </ul>
+          </li>
+          <li><strong>대안적 추론 방법 적용</strong>
+            <ul>
+              <li><strong>Ferman &amp; Pinto (2016) 방법 (F–P):</strong> 이분산성을 보정한 클러스터 잔차 부트스트랩
+                <ul>
+                  <li>처치 집단이 적고 이분산성이 있는 환경에서 개선된 가설검정 제공</li>
+                  <li>DDD 모형으로 확장하여 적용 (Appendix B)</li>
+                  <li>모든 결과에 F–P p값 함께 보고</li>
+                </ul>
+              </li>
+              <li><strong>Donald &amp; Lang (2007) 2단계 방법:</strong> 데이터를 주-연도 수준으로 집계 후 추정</li>
+            </ul>
+          </li>
+          <li>F–P p값은 군집 표준오차 기반 p값보다 일관되게 크게 나타남
+            <ul>
+              <li>처치 집단 1개 및 주별 관측 수 이분산성에 기인</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>21 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 22: Table 1 이미지 -->
+  <div class="slide" data-index="21" data-section="Empirical Strategy">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">4 / Empirical Strategy</span><h2>식별 가정 점검: Table 1</h2></div>
+      <div class="slide-body">
+        <div class="img-container">
+          <img src="images/Table1.png" alt="Table 1: Correlation between CA-PFL and fathers characteristics">
+        </div>
+        <p class="img-caption">Table 1. Correlation between CA-PFL and fathers' characteristics.</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>22 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 23: Table 1 해석 -->
+  <div class="slide" data-index="22" data-section="Empirical Strategy">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">4 / Empirical Strategy</span><h2>식별 가정 점검: Table 1 — 해석</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li>DDD 추정의 인과적 해석을 위해 <strong>CA-PFL 시행이 표본 구성과 무관</strong>해야 함
+            <ul>
+              <li>고용 여부, 영아 보유 여부, 부-자녀 동거율, 캘리포니아 이주 등에 영향을 미치면 식별 가정 위반</li>
+            </ul>
+          </li>
+          <li><strong>검증 방법:</strong> 아버지의 관측 가능한 특성을 종속변수로 한 DDD 추정
+            <ul>
+              <li>취업 여부, 영아 보유 여부, 평균 연령, 혼인 여부, 학력, 인종, 예측 휴직률 등</li>
+            </ul>
+          </li>
+          <li><strong>결과:</strong> CA-PFL과 아버지의 인구통계학적 특성 간 <em>유의미한 상관관계 없음</em>
+            <ul>
+              <li>취업률 95% 신뢰구간: −0.6%p ∼ +0.9%p (기저 평균 89.9%)</li>
+              <li>예측 휴직률(predicted leave)도 CA-PFL과 무관</li>
+              <li>→ 캘리포니아 영아 아버지의 인구통계학적 차별적 추세가 결과를 구동하지 않음을 시사</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>23 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 24: SECTION DIVIDER — Results -->
+  <div class="slide" data-index="23" data-section="Results">
+    <div class="slide-card">
+      <div class="section-divider-slide">
+        <div class="sec-num">05</div>
+        <h2>Estimated Effects on Leave-Taking</h2>
+        <div class="sec-line"></div>
+        <p style="color:var(--text-muted);font-size:15px;">주요 결과 · 이질적 효과 · 맞벌이 가구 분석</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>24 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 25: Table 2 이미지 -->
+  <div class="slide" data-index="24" data-section="Results">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">5 / Results</span><h2>Table 2: CA-PFL이 부모 휴직에 미친 효과</h2></div>
+      <div class="slide-body">
+        <div class="img-container">
+          <img src="images/Table2.png" alt="Table 2: Effects of CA-PFL on fathers leave-taking behavior">
+        </div>
+        <p class="img-caption">Table 2. Effects of CA-PFL on fathers' leave-taking behavior.</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>25 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 26: Table 2 해석 -->
+  <div class="slide" data-index="25" data-section="Results">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">5 / Results</span><h2>Table 2: CA-PFL이 부모 휴직에 미친 효과 — 해석</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li><strong>DD 추정 결과 (columns 1–3):</strong> CA-PFL은 아버지 휴직률을 <strong>0.88–1.25%p 상승</strong>
+            <ul>
+              <li>사전 평균 1.99% 대비 44–63% 증가</li>
+            </ul>
+          </li>
+          <li><strong>선호 사양: DDD (column 4)</strong>
+            <ul>
+              <li>CA-PFL은 아버지 휴직률을 <strong>0.9%p 상승</strong> (사전 평균 대비 <strong>46% 증가</strong>)</li>
+              <li>주-연도 통제변수 포함(col. 5) 및 주별 선형 추세 포함(col. 6) 시에도 결과 강건</li>
+            </ul>
+          </li>
+          <li>추가 days 환산 (균등 분포 가정 하)
+            <ul>
+              <li>사전 기저: 약 5.2일 → CA-PFL 시행 후 약 <strong>2.4일 추가</strong> (총 약 7.6일)</li>
+            </ul>
+          </li>
+          <li><strong>어머니 결과 (column 7)</strong>
+            <ul>
+              <li>CA-PFL은 어머니 휴직률을 <strong>2.3%p 상승</strong> (사전 평균 17.7% 대비 13% 증가)</li>
+              <li>절대적 증가폭은 어머니가 크나, <em>상대적 증가율은 아버지(46%)가 훨씬 큼</em></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>26 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 27: Figure 2 이미지 -->
+  <div class="slide" data-index="26" data-section="Results">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">5 / Results</span><h2>Figure 2: 이벤트 스터디 — CA vs. 타 주 영아 아버지</h2></div>
+      <div class="slide-body">
+        <div class="img-container">
+          <img src="images/Figure2.png" alt="Figure 2: Event Study Graph for Leave-Taking">
+        </div>
+        <p class="img-caption">Figure 2. Event Study Graph for Leave-Taking: Fathers of Infants in CA vs. Fathers of Infants in Other States.</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>27 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 28: Figure 2 해석 -->
+  <div class="slide" data-index="27" data-section="Results">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">5 / Results</span><h2>Figure 2: 이벤트 스터디 — CA vs. 타 주 영아 아버지 — 해석</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li>CA-PFL 시행 이후 캘리포니아 영아 아버지의 휴직률이 타 주 대비 <strong>상승하는 추세</strong></li>
+          <li>즉각적인 급등보다 <em>시간에 따른 점진적 증가</em> 패턴
+            <ul>
+              <li>CA-PFL 인지도가 시간이 지남에 따라 높아진 것과 일치하는 해석</li>
+              <li>실제로 캘리포니아 남성의 bonding 청구 건수가 2005년 24,021건에서 2012–2013 회계연도에 59,256건으로 <strong>146% 증가</strong></li>
+            </ul>
+          </li>
+          <li>다만 2004년 이전 시기의 상향 pre-trend 가능성을 완전히 배제하기 어려움
+            <ul>
+              <li>→ 주-연도 고정효과를 포함한 DDD 사양을 <strong>선호 사양</strong>으로 채택하는 근거</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>28 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 29: Figure 3 이미지 -->
+  <div class="slide" data-index="28" data-section="Results">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">5 / Results</span><h2>Figure 3: 이벤트 스터디 — CA 영아 아버지 vs. CA 1–3세 자녀 아버지</h2></div>
+      <div class="slide-body">
+        <div class="img-container">
+          <img src="images/Figure3.png" alt="Figure 3: Event Study Graph for Leave-Taking CA vs CA">
+        </div>
+        <p class="img-caption">Figure 3. Event Study Graph for Leave-Taking: Fathers of Infants in CA vs. Fathers of Children aged 1 to 3 in CA.</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>29 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 30: Figure 3 해석 -->
+  <div class="slide" data-index="29" data-section="Results">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">5 / Results</span><h2>Figure 3: 이벤트 스터디 — CA 영아 아버지 vs. CA 1–3세 자녀 아버지 — 해석</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li>CA-PFL 시행 이후 캘리포니아 내 영아 아버지의 휴직률이 1–3세 자녀 아버지 대비 <strong>상승</strong></li>
+          <li>Figure 2와 마찬가지로 시행 이후 <em>점진적 상승 패턴</em> 확인</li>
+          <li>추정치에 노이즈가 있으나 전반적인 방향은 일관됨</li>
+          <li>두 이벤트 스터디 모두 <strong>시사적(suggestive)</strong> 수준으로 해석해야 하며, 2004년 이전 상향 pre-trend 가능성을 완전히 배제하기 어려움</li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>30 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 31: Table 3 이미지 -->
+  <div class="slide" data-index="30" data-section="Results">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">5 / Results</span><h2>이질적 효과: Table 3</h2></div>
+      <div class="slide-body">
+        <div class="img-container">
+          <img src="images/Table3.png" alt="Table 3: Heterogeneous effects of CA-PFL">
+        </div>
+        <p class="img-caption">Table 3. Heterogeneous effects of CA-PFL on parents' leave-taking behavior.</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>31 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 32: Table 3 해석 -->
+  <div class="slide" data-index="31" data-section="Results">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">5 / Results</span><h2>이질적 효과: Table 3 — 해석</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li><strong>출생 순서 (columns 1, 3)</strong>
+            <ul>
+              <li>아버지: 첫째 자녀 시 약 <strong>2%p 증가(95%)</strong>, 둘째 이상 시 <strong>0.35%p 증가(18%)</strong> — 차이 유의</li>
+              <li>어머니: 출생 순서에 따른 차이 작고 유의하지 않음</li>
+              <li>출생 순서 효과의 성별 비대칭은 사전 휴직 패턴 차이로 설명되지 않음</li>
+            </ul>
+          </li>
+          <li><strong>자녀 성별 (columns 2, 4)</strong>
+            <ul>
+              <li>아버지: 아들일 때 효과가 딸보다 크다는 <em>잠정적 증거</em>
+                <ul>
+                  <li>군집 표준오차 기준으로는 유의하나 <strong>F–P 방법으로는 유의하지 않음</strong></li>
+                </ul>
+              </li>
+              <li>어머니: 오히려 딸일 때 효과가 다소 크게 나타나나 역시 F–P 기준 유의하지 않음</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>32 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 33: Table 4 이미지 -->
+  <div class="slide" data-index="32" data-section="Results">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">5 / Results</span><h2>이질적 효과: Table 4</h2></div>
+      <div class="slide-body">
+        <div class="img-container">
+          <img src="images/Table4.png" alt="Table 4: Heterogeneous effects by household income">
+        </div>
+        <p class="img-caption">Table 4. Heterogeneous effects of CA-PFL on fathers' leave-taking behavior by adjusted household income.</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>33 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 34: Table 4 해석 -->
+  <div class="slide" data-index="33" data-section="Results">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">5 / Results</span><h2>이질적 효과: Table 4 — 해석</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li><strong>가구 소득 분위별 효과</strong>
+            <ul>
+              <li>아버지: 1분위(최저)와 4분위(최고)에서 효과가 나타나는 <em>비선형 패턴</em></li>
+              <li>어머니: 2분위(26–50번째 백분위)에서 가장 크고 F–P 기준 유의</li>
+              <li>전반적으로 소득 분위 간 차이는 <strong>통계적으로 유의하지 않음</strong></li>
+            </ul>
+          </li>
+          <li><strong>해석 시 주의사항</strong>
+            <ul>
+              <li>ACS의 가구 소득은 과거 휴직 결정에 내생적(endogenous)일 수 있음</li>
+              <li>소득 분위별 사전 평균 휴직률도 상이함</li>
+            </ul>
+          </li>
+          <li><strong>결론:</strong> 소득에 따른 이질성의 강건한 증거는 없음
+            <ul>
+              <li>정책 효과가 소득 분포에 대해 상대적으로 <em>중립적</em>임을 시사</li>
+              <li>캘리포니아 결과가 상이한 소득 분포를 가진 타 주에도 일반화 가능할 수 있음</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>34 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 35: Table 5 이미지 -->
+  <div class="slide" data-index="34" data-section="Results">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">5 / Results</span><h2>맞벌이 가구의 휴직 형태: Table 5</h2></div>
+      <div class="slide-body">
+        <div class="img-container">
+          <img src="images/Table5.png" alt="Table 5: Effects of CA-PFL on household leave-taking behavior">
+        </div>
+        <p class="img-caption">Table 5. Effects of CA-PFL on household leave-taking behavior.</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>35 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 36: Table 5 해석 -->
+  <div class="slide" data-index="35" data-section="Results">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">5 / Results</span><h2>맞벌이 가구의 휴직 형태: Table 5 — 해석</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li><strong>어머니 비취업 가구 (column 1)</strong>
+            <ul>
+              <li>CA-PFL은 아버지 휴직률을 <strong>0.4%p 상승</strong> (사전 평균 대비 25% 증가)</li>
+              <li>군집 표준오차 기준으로만 유의, F–P 기준 유의하지 않음</li>
+            </ul>
+          </li>
+          <li><strong>맞벌이 가구 (columns 2–5)</strong>
+            <ul>
+              <li>부모 중 한 명이라도 휴직할 확률: <strong>4%p 상승</strong> (사전 평균 대비 22% 증가)</li>
+              <li>아버지 휴직 증가의 구성
+                <ul>
+                  <li><strong>공동 휴직</strong>(부모 동시 휴직): 0.41%p 증가 (28% 증가)</li>
+                  <li><strong>아버지 단독 휴직</strong>(어머니 취업 중): 0.53%p 증가 (50% 증가)</li>
+                  <li>두 형태의 합산 증가분: 0.94%p (F–P p값 = 0.036)</li>
+                </ul>
+              </li>
+              <li>아버지 단독 휴직 증가는 CA-PFL이 영아와 함께하는 <em>총 재가 시간을 늘릴 수 있음</em>을 시사</li>
+            </ul>
+          </li>
+          <li>맞벌이 어머니도 CA-PFL 시행 후 휴직 확률이 크게 증가하며, 거의 항상 아버지 취업 중에 휴직</li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>36 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 37: SECTION DIVIDER — Robustness -->
+  <div class="slide" data-index="36" data-section="Robustness">
+    <div class="slide-card">
+      <div class="section-divider-slide">
+        <div class="sec-num">06</div>
+        <h2>Robustness</h2>
+        <div class="sec-line"></div>
+        <p style="color:var(--text-muted);font-size:15px;">집계 데이터 추정 · 합성 통제 · 플라시보 분석</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>37 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 38: Table 6 이미지 -->
+  <div class="slide" data-index="37" data-section="Robustness">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">6 / Robustness</span><h2>강건성 검정: Table 6</h2></div>
+      <div class="slide-body">
+        <div class="img-container">
+          <img src="images/Table6.png" alt="Table 6: Estimates based on collapsed data">
+        </div>
+        <p class="img-caption">Table 6. Estimates based on collapsed data.</p>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>38 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 39: Robustness 해석 + 추가 -->
+  <div class="slide" data-index="38" data-section="Robustness">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">6 / Robustness</span><h2>강건성 검정: Table 6 해석 및 추가 검토</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li><strong>집계 데이터 기반 추정 (column 1)</strong>
+            <ul>
+              <li>Donald &amp; Lang (2007) 2단계 방법 적용 → 효과 크기: <strong>0.8%p</strong> — 개인 수준 데이터 결과와 매우 유사</li>
+            </ul>
+          </li>
+          <li><strong>합성 통제(Synthetic Control) 비교 집단 (columns 2–11)</strong>
+            <ul>
+              <li>매칭 변수 조합을 달리한 10가지 사양 모두에서 <em>유사한 효과 크기</em> 확인</li>
+              <li>대부분의 사양에서 10% 수준 이상으로 통계적으로 유의</li>
+              <li>→ <strong>비교 집단 선택에 결과가 민감하지 않음</strong></li>
+            </ul>
+          </li>
+          <li><strong>통제변수 제외 및 2000년 데이터 제거</strong>
+            <ul>
+              <li>개인 수준·주-연도 통제변수 제외 시에도 결과 유사 → 인구통계학적 추세와 무관</li>
+            </ul>
+          </li>
+          <li><strong>플라시보 분석</strong>
+            <ul>
+              <li>캘리포니아를 제외한 48개 주 각각을 처치 주로 가정 → 48개 주 중 <strong>41개 주에서 유의한 DDD 계수 없음</strong></li>
+              <li>양(+)의 유의한 계수를 보인 주는 아이다호(ID)와 루이지애나(LA) 2개뿐</li>
+              <li>→ 캘리포니아 결과가 <em>우연에 의한 것이 아님</em>을 시사</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>39 / 40</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 40: SECTION DIVIDER + Conclusion -->
+  <div class="slide" data-index="39" data-section="Conclusion">
+    <div class="slide-card">
+      <div class="slide-header"><span class="section-tag">7 / Conclusion</span><h2>결론 및 정책적 함의</h2></div>
+      <div class="slide-body">
+        <ul>
+          <li>CA-PFL은 영아를 둔 아버지의 휴직률을 <strong>0.9%p 상승</strong> (사전 평균 대비 46% 증가)
+            <ul>
+              <li>상대적 증가율은 어머니(13%)보다 훨씬 크나, 절대적 증가폭은 어머니가 더 큼</li>
+              <li>아버지는 수혜 가능한 6주 중 평균 약 <strong>1.5주만 사용</strong> → 고용주 비용 증가는 미미</li>
+            </ul>
+          </li>
+          <li><strong>가구 수준 분석:</strong> CA-PFL은 공동 휴직과 아버지 단독 휴직을 모두 증가
+            <ul>
+              <li>맞벌이 가구에서 아버지 휴직의 약 절반은 어머니와 동시에, 나머지 절반은 어머니 복직 후 발생</li>
+              <li>→ CA-PFL이 영아와 함께하는 <em>총 재가 시간을 증가</em>시킬 수 있음을 시사</li>
+            </ul>
+          </li>
+          <li><strong>이질적 효과</strong>
+            <ul>
+              <li>출생 순서: 첫째 자녀 아버지에게 효과가 집중 (어머니는 해당 패턴 없음)</li>
+              <li>자녀 성별·가구 소득: 강건한 이질성 증거 없음 → <strong>정책 효과의 보편성</strong> 시사</li>
+            </ul>
+          </li>
+          <li><strong>정책적 함의</strong>
+            <ul>
+              <li>미국 아버지들은 유급 휴직 기회 확대에 실질적으로 반응</li>
+              <li>아버지 단독 휴직 증가는 <strong>성별 육아 분담의 불평등 완화</strong> 및 젠더 격차 축소에 기여할 가능성</li>
+              <li>CA-PFL의 효과는 유럽 대비 훨씬 작음 → 향후 설계 시 <em>임금 대체율 및 고용 보호 수준</em>이 중요한 고려 요소</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="slide-footer"><span>Bartel et al. (2018)</span><span>40 / 40</span></div>
+    </div>
+  </div>
+
+</div><!-- /slides-wrapper -->
+
+<!-- CONTROLS -->
+<div id="controls">
+  <button class="ctrl-btn" id="btn-prev" title="이전 (←)">&#8592;</button>
+  <span id="slide-counter">1 / 40</span>
+  <button class="ctrl-btn" id="btn-next" title="다음 (→)">&#8594;</button>
+  <div class="ctrl-divider"></div>
+  <button class="ctrl-btn" id="btn-first" title="처음으로">&#8676;</button>
+  <button class="ctrl-btn" id="btn-last" title="마지막으로">&#8677;</button>
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+let current = 0;
+let animating = false;
+
+function updateProgress() {
+  const pct = ((current + 1) / total) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+function updateCounter() {
+  document.getElementById('slide-counter').textContent = (current + 1) + ' / ' + total;
+}
+
+function updateButtons() {
+  document.getElementById('btn-prev').disabled = current === 0;
+  document.getElementById('btn-next').disabled = current === total - 1;
+  document.getElementById('btn-first').disabled = current === 0;
+  document.getElementById('btn-last').disabled = current === total - 1;
+}
+
+function goTo(index, direction) {
+  if (animating || index === current || index < 0 || index >= total) return;
+  animating = true;
+
+  const prev = slides[current];
+  const next = slides[index];
+
+  // Set enter class (hidden but prepped)
+  next.style.opacity = '0';
+  next.classList.add('active');
+
+  const exitClass = direction > 0 ? 'exit-left' : 'exit-right';
+  const enterClass = direction > 0 ? 'enter-right' : 'enter-left';
+
+  prev.classList.add(exitClass);
+  next.classList.add(enterClass);
+  next.style.opacity = '';
+
+  const duration = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--transition-speed')) * 1000;
+
+  setTimeout(() => {
+    prev.classList.remove('active', exitClass);
+    next.classList.remove(enterClass);
+    current = index;
+    animating = false;
+    updateProgress();
+    updateCounter();
+    updateButtons();
+    updateOverviewActive();
+  }, duration);
+}
+
+function next() { goTo(current + 1, 1); }
+function prev() { goTo(current - 1, -1); }
+
+document.getElementById('btn-next').addEventListener('click', next);
+document.getElementById('btn-prev').addEventListener('click', prev);
+document.getElementById('btn-first').addEventListener('click', () => goTo(0, -1));
+document.getElementById('btn-last').addEventListener('click', () => goTo(total - 1, 1));
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next();
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prev();
+  if (e.key === 'Home') goTo(0, -1);
+  if (e.key === 'End') goTo(total - 1, 1);
+  if (e.key === 'Escape') closeOverview();
+});
+
+// Theme toggle
+const themeBtn = document.getElementById('theme-toggle');
+let isDark = true;
+// Detect system preference
+if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+  isDark = false;
+  document.documentElement.setAttribute('data-theme', 'light');
+  themeBtn.textContent = '☀️ 라이트';
+}
+themeBtn.addEventListener('click', () => {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  themeBtn.textContent = isDark ? '🌙 다크' : '☀️ 라이트';
+});
+
+// Fullscreen
+document.getElementById('fullscreen-btn').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+});
+
+// Overview
+const overviewEl = document.getElementById('overview');
+const overviewGrid = document.getElementById('overview-grid');
+
+// Build thumbnails
+slides.forEach((s, i) => {
+  const header = s.querySelector('.slide-header h2, .section-divider-slide h2, .title-slide h1');
+  const title = header ? header.textContent.trim().slice(0, 60) : '슬라이드 ' + (i+1);
+  const section = s.getAttribute('data-section') || '';
+  const div = document.createElement('div');
+  div.className = 'overview-thumb' + (i === 0 ? ' active-thumb' : '');
+  div.innerHTML = `<div class="thumb-num">${i+1} · ${section}</div><div class="thumb-title">${title}</div>`;
+  div.addEventListener('click', () => {
+    const dir = i > current ? 1 : -1;
+    goTo(i, dir);
+    closeOverview();
+  });
+  overviewGrid.appendChild(div);
+});
+
+function updateOverviewActive() {
+  document.querySelectorAll('.overview-thumb').forEach((t, i) => {
+    t.classList.toggle('active-thumb', i === current);
+  });
+}
+
+function closeOverview() {
+  overviewEl.classList.remove('active');
+}
+
+document.getElementById('overview-btn').addEventListener('click', () => {
+  overviewEl.classList.toggle('active');
+  updateOverviewActive();
+});
+document.getElementById('overview-close').addEventListener('click', closeOverview);
+overviewEl.addEventListener('click', e => { if (e.target === overviewEl) closeOverview(); });
+
+// Outline click navigation
+document.querySelectorAll('.outline-item[data-goto]').forEach(item => {
+  item.addEventListener('click', () => {
+    const target = parseInt(item.getAttribute('data-goto'));
+    const dir = target > current ? 1 : -1;
+    goTo(target, dir);
+  });
+});
+
+// Deep link via hash
+function applyHash() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#slide-')) {
+    const idx = parseInt(hash.replace('#slide-', '')) - 1;
+    if (!isNaN(idx) && idx >= 0 && idx < total) {
+      slides[current].classList.remove('active');
+      current = idx;
+      slides[current].classList.add('active');
+      updateProgress();
+      updateCounter();
+      updateButtons();
+    }
+  }
+}
+applyHash();
+window.addEventListener('hashchange', applyHash);
+
+// Update hash on slide change (wrapped in goTo)
+const origGoTo = goTo;
+
+// Init
+updateProgress();
+updateCounter();
+updateButtons();
+</script>
+</body>
+</html>
