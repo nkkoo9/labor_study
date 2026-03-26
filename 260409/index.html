@@ -193,7 +193,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 60px 80px 100px;
+    padding: 60px 40px 100px;
     opacity: 0;
     pointer-events: none;
   }
@@ -239,13 +239,15 @@
     border: 1px solid var(--border);
     border-radius: 18px;
     width: 100%;
-    max-width: 960px;
+    max-width: 1080px;
     max-height: calc(100vh - 160px);
     overflow-y: auto;
     box-shadow: var(--slide-shadow);
     transition: background 0.4s, border-color 0.4s;
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
 
   /* ── SLIDE HEADER ── */
